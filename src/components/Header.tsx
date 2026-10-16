@@ -22,7 +22,7 @@ export function Header({ locale }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 bg-blue-600 text-white px-4 py-3 flex items-center justify-between shadow-md">
-      <h1 className="text-lg font-semibold tracking-tight">{t('appName')}</h1>
+      <span className="text-lg font-semibold tracking-tight">{t('appName')}</span>
       <div className="flex items-center gap-2">
         <Globe className="w-5 h-5" aria-hidden="true" />
         <select

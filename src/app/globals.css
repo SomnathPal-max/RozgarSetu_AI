@@ -75,3 +75,20 @@
 .large-text h1 { font-size: 2rem; }
 .large-text h2 { font-size: 1.75rem; }
 .large-text h3 { font-size: 1.5rem; }
+
+/* Sahayak Helper Mode (High contrast & large typography for CSC / Cyber Cafe operators) */
+.sahayak-active {
+  font-size: 1.1rem;
+}
+
+.sahayak-active .receipt-container {
+  border-width: 2px !important;
+  border-color: #000000 !important;
+}
+
+.sahayak-active strong,
+.sahayak-active h1,
+.sahayak-active h2 {
+  font-weight: 800 !important;
+}
+

@@ -1,8 +1,16 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { locales } from '@/i18n/config';
+import { setRequestLocale } from 'next-intl/server';
+import { EligibilityReceiptClient } from '@/components/EligibilityReceiptClient';
+import { locales, type Locale } from '@/i18n/config';
 
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale, vacancyId: 'demo' }));
+  const ids = ['notice-a', 'notice-b', 'notice-c', 'msme-delivery', 'msme-packaging', 'msme-billing', 'demo'];
+  const params: { locale: string; vacancyId: string }[] = [];
+  for (const locale of locales) {
+    for (const vacancyId of ids) {
+      params.push({ locale, vacancyId });
+    }
+  }
+  return params;
 }
 
 export default async function ReceiptPage({
@@ -10,16 +18,8 @@ export default async function ReceiptPage({
 }: {
   params: Promise<{ locale: string; vacancyId: string }>;
 }) {
-  const { locale } = await params;
+  const { locale, vacancyId } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('screen8');
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t('eligibilityReceipt')}</h1>
-      <p className="text-sm text-slate-500 text-center py-8">
-        Eligibility receipt will appear here in Phase 6.
-      </p>
-    </div>
-  );
+  return <EligibilityReceiptClient vacancyId={vacancyId} locale={locale as Locale} />;
 }

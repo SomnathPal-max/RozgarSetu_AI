@@ -1,8 +1,16 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { locales } from '@/i18n/config';
+import { setRequestLocale } from 'next-intl/server';
+import { ReportListingClient } from '@/components/ReportListingClient';
+import { locales, type Locale } from '@/i18n/config';
 
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale, vacancyId: 'demo' }));
+  const ids = ['notice-a', 'notice-b', 'notice-c', 'msme-delivery', 'msme-packaging', 'msme-billing', 'demo'];
+  const params: { locale: string; vacancyId: string }[] = [];
+  for (const locale of locales) {
+    for (const vacancyId of ids) {
+      params.push({ locale, vacancyId });
+    }
+  }
+  return params;
 }
 
 export default async function ReportPage({
@@ -10,16 +18,8 @@ export default async function ReportPage({
 }: {
   params: Promise<{ locale: string; vacancyId: string }>;
 }) {
-  const { locale } = await params;
+  const { locale, vacancyId } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('screen7');
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t('reportListing')}</h1>
-      <p className="text-sm text-slate-500 text-center py-8">
-        Report form will appear here in Phase 5.
-      </p>
-    </div>
-  );
+  return <ReportListingClient vacancyId={vacancyId} locale={locale as Locale} />;
 }

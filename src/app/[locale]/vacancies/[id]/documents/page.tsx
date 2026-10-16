@@ -1,8 +1,16 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { locales } from '@/i18n/config';
+import { setRequestLocale } from 'next-intl/server';
+import { DocumentChecklistClient } from '@/components/DocumentChecklistClient';
+import { locales, type Locale } from '@/i18n/config';
 
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale, id: 'demo' }));
+  const ids = ['notice-a', 'notice-b', 'notice-c', 'msme-delivery', 'msme-packaging', 'msme-billing', 'demo'];
+  const params: { locale: string; id: string }[] = [];
+  for (const locale of locales) {
+    for (const id of ids) {
+      params.push({ locale, id });
+    }
+  }
+  return params;
 }
 
 export default async function DocumentChecklistPage({
@@ -10,16 +18,8 @@ export default async function DocumentChecklistPage({
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
-  const { locale } = await params;
+  const { locale, id } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('screen5');
 
-  return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">{t('documentChecklist')}</h1>
-      <p className="text-sm text-slate-500 text-center py-8">
-        Document checklist will appear here in Phase 4.
-      </p>
-    </div>
-  );
+  return <DocumentChecklistClient id={id} locale={locale as Locale} />;
 }

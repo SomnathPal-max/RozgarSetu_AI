@@ -6,7 +6,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/engine/**/*.test.ts', 'tests/engine/**/*.test.ts'],
+    include: ['src/engine/**/*.test.ts', 'tests/**/*.test.ts'],
+    fileParallelism: false,
   },
   resolve: {
     alias: {
