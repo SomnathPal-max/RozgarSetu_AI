@@ -2,7 +2,7 @@
   "_reviewed": true,
   "common": {
     "appName": "RozgarSetu AI",
-    "tagline": "Your bridge to verified opportunities",
+    "tagline": "Your bridge to source-checked opportunities",
     "illustrativeNotice": "This is a working demonstration on invented data. No real vacancies, users, or results are shown.",
     "draftTranslation": "Draft translation",
     "preliminary": "PRELIMINARY: Verify against the official notice before you act.",
@@ -27,7 +27,7 @@
   },
   "screen1": {
     "welcome": "Welcome to RozgarSetu",
-    "subtitle": "Find verified government and local job opportunities",
+    "subtitle": "Find source-checked government and local job opportunities",
     "checkEligibility": "Check eligibility now",
     "checkEligibilityDesc": "No account needed. Nothing is saved.",
     "createAccount": "Create account",

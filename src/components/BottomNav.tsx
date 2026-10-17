@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -13,11 +14,27 @@ interface BottomNavProps {
 export function BottomNav({ locale }: BottomNavProps) {
   const t = useTranslations('common');
   const pathname = usePathname();
+  const [isReviewer, setIsReviewer] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in as reviewer/admin per access control rules
+    const hasReviewerCookie = document.cookie
+      .split('; ')
+      .some(
+        (row) =>
+          row.startsWith('rozgarsetu_role=reviewer') ||
+          row.startsWith('rozgarsetu_role=reviewer2') ||
+          row.startsWith('rozgarsetu_role=admin')
+      );
+    setIsReviewer(hasReviewerCookie);
+  }, [pathname]);
 
   const navItems = [
     { href: `/${locale}`, label: t('home'), icon: Home },
     { href: `/${locale}/saved`, label: t('saved'), icon: Bookmark },
-    { href: `/${locale}/admin`, label: t('admin'), icon: Shield },
+    ...(isReviewer
+      ? [{ href: `/${locale}/admin`, label: t('admin'), icon: Shield }]
+      : []),
   ];
 
   return (

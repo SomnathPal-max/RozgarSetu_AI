@@ -22,7 +22,7 @@ export async function POST() {
       .set({
         status: 'received',
       })
-      .where(eq(reports.id, 'report-1'));
+      .where(eq(reports.id, 'rep-1'));
 
     // Write audit log entry
     await db.insert(auditLog).values({

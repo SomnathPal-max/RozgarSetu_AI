@@ -6,52 +6,50 @@ import Link from 'next/link';
 import { Search, ShieldAlert, CheckCircle2, AlertCircle, Building2, Briefcase } from 'lucide-react';
 import { BottomNav } from '@/components/BottomNav';
 import { type Locale } from '@/i18n/config';
-
-interface VacancyItem {
-  id: string;
-  type: 'government' | 'msme';
-  title: string;
-  orgName: string;
-  area: string;
-  publishedOn: string;
-  lastDate: string;
-  lastCheckedAt: string;
-  advertisedPayMin?: number;
-  advertisedPayMax?: number;
-  completedChecksCount: number;
-  totalChecksCount: number;
-  hasContactVerified: boolean;
-  redFlagCount: number;
-  isHighRisk: boolean;
-}
+import { type VacancyItem } from '@/lib/vacancies';
 
 interface VacancyFinderClientProps {
   locale: Locale;
+  initialVacancies?: VacancyItem[];
+  loadError?: string | null;
 }
 
-export function VacancyFinderClient({ locale }: VacancyFinderClientProps) {
+export function VacancyFinderClient({
+  locale,
+  initialVacancies = [],
+  loadError = null,
+}: VacancyFinderClientProps) {
   const t = useTranslations('screen2');
-  const [vacancies, setVacancies] = useState<VacancyItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [vacancies, setVacancies] = useState<VacancyItem[]>(initialVacancies);
+  const [loading, setLoading] = useState(initialVacancies.length === 0 && !loadError);
+  const [errorMessage, setErrorMessage] = useState<string | null>(loadError);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'government' | 'msme' | 'closing_soon'>('all');
 
-  useEffect(() => {
-    async function loadVacancies() {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/vacancies');
-        if (res.ok) {
-          const data = await res.json();
-          setVacancies(data.vacancies || []);
-        }
-      } catch (err) {
-        console.error('Failed to fetch vacancies:', err);
-      } finally {
-        setLoading(false);
+  const loadVacancies = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+      const res = await fetch('/api/vacancies');
+      if (res.ok) {
+        const data = await res.json();
+        setVacancies(data.vacancies || []);
+      } else {
+        setErrorMessage('Failed to load vacancies. Please try again.');
       }
+    } catch (err) {
+      console.error('Failed to fetch vacancies:', err);
+      setErrorMessage('Network error while loading vacancies. Please check connection.');
+    } finally {
+      setLoading(false);
     }
-    loadVacancies();
+  };
+
+  useEffect(() => {
+    if (initialVacancies.length === 0 && !loadError) {
+      loadVacancies();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredVacancies = vacancies.filter((v) => {
@@ -140,6 +138,22 @@ export function VacancyFinderClient({ locale }: VacancyFinderClientProps) {
             {t('closingSoon')}
           </button>
         </div>
+
+        {/* Error message banner */}
+        {errorMessage && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+            <button
+              onClick={loadVacancies}
+              className="text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1.5 rounded-lg transition-colors shrink-0 min-h-[44px]"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Vacancy Card List */}
         {loading ? (

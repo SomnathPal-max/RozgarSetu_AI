@@ -3,6 +3,11 @@ import { test, expect } from '@playwright/test';
 test.describe.serial('RozgarSetu AI: 3-Minute Demo Flow (Section 12 & Screens 1-9)', () => {
   test.use({ viewport: { width: 360, height: 800 } });
 
+  test.beforeAll(async ({ request }) => {
+    // Reset database to pristine seed state so demo flow is 100% reproducible
+    await request.post('/api/admin/reset-demo');
+  });
+
   test('Step 1: Start and Language (Screen 1)', async ({ page }) => {
     // 1. Open home page in English
     await page.goto('/en');
@@ -221,8 +226,11 @@ test.describe.serial('RozgarSetu AI: 3-Minute Demo Flow (Section 12 & Screens 1-
     await expect(page.getByText(/RS-\d+/)).toBeVisible();
     await expect(page.getByText(/Acknowledgement target 24 hours/i)).toBeVisible();
 
-    // 2. Open Reviewer Queue (Screen 9)
+    // 2. Open Reviewer Portal and authenticate as Demo Reviewer 1
     await page.goto('/en/admin');
+    await expect(page).toHaveURL(/\/en\/admin\/login/);
+    await page.getByRole('button', { name: /Demo Reviewer 1/i }).click();
+    await expect(page).toHaveURL(/\/en\/admin/);
     await expect(page.locator('h1')).toContainText(/reviewer queue/i);
 
     // Verify High risk badge and reasons

@@ -230,12 +230,23 @@ export function ReviewerQueueClient({ locale }: ReviewerQueueClientProps) {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               {t('title')}
             </h1>
-            <Link
-              href={`/${locale}/admin/notices`}
-              className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md"
-            >
-              Corrigendum Tool →
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/${locale}/admin/notices`}
+                className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md hover:bg-indigo-100 transition-colors"
+              >
+                Corrigendum →
+              </Link>
+              <button
+                onClick={async () => {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                  window.location.href = `/${locale}`;
+                }}
+                className="text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition-colors"
+              >
+                Exit Portal
+              </button>
+            </div>
           </div>
           <p className="text-xs text-slate-500 font-medium">
             {t('subtitle')}

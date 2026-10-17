@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:push": "drizzle-kit push",
-    "db:seed": "node --import tsx src/db/seed.ts"
+    "db:seed": "node --import tsx src/db/seed.ts",
+    "metrics": "tsx scripts/eval-metrics.ts"
   },
   "dependencies": {
     "next": "^15.1.7",

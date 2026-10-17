@@ -21,7 +21,7 @@ export function ProfileModal({ isOpen, onClose, mode, locale }: ProfileModalProp
 
   // Pre-filled with mock-up test profile defaults (Screen 4 reproduction: Age 24, Higher Secondary, category blank)
   const [name, setName] = useState('Illustrative Candidate');
-  const [mobile, setMobile] = useState('9000000001');
+  const [mobile, setMobile] = useState('0000000001');
   const [dob, setDob] = useState('2002-05-15');
   const [qualification, setQualification] = useState<QualificationLevel>('higher_secondary');
   const [category, setCategory] = useState<string>('');

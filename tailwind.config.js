@@ -7,9 +7,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        bengali: ['"Noto Sans Bengali"', 'system-ui', 'sans-serif'],
-        devanagari: ['"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        bengali: ['var(--font-noto-bengali)', '"Noto Sans Bengali"', 'system-ui', 'sans-serif'],
+        devanagari: ['var(--font-noto-devanagari)', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
       },
       screens: {
         'xs': '360px',

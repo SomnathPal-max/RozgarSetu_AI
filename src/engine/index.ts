@@ -335,7 +335,9 @@ export function checkEligibility(
           break;
         }
 
-        const relaxationYears = relaxationTable ? relaxationTable[profile.category] : undefined;
+        const relaxationYears = relaxationTable
+          ? relaxationTable[profile.category]
+          : (rule.params.category === profile.category ? (rule.params.years as number) : undefined);
         if (relaxationYears && relaxationYears > 0) {
           results.push({
             criterion: 'category_relaxation',

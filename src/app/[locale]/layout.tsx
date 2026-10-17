@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter, Noto_Sans_Bengali, Noto_Sans_Devanagari } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -7,13 +8,29 @@ import { Header } from '@/components/Header';
 import { IllustrativeFooter } from '@/components/IllustrativeFooter';
 import '../globals.css';
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const notoBengali = Noto_Sans_Bengali({
+  subsets: ['bengali'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-noto-bengali',
+});
+
+const notoDevanagari = Noto_Sans_Devanagari({
+  subsets: ['devanagari'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-noto-devanagari',
+});
+
 export const metadata: Metadata = {
   title: 'RozgarSetu AI — Illustrative Prototype',
   description: 'A working demonstration on invented data. No real vacancies, users, or results.',
-  other: {
-    // Google Fonts loaded at runtime — gracefully degrades to system fonts if unavailable
-    'google-fonts': 'Noto Sans Bengali, Noto Sans Devanagari, Inter',
-  },
 };
 
 export const viewport: Viewport = {
@@ -56,9 +73,8 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      {/* Noto Sans Bengali & Devanagari loaded via metadata links below */}
       <body
-        className={`${fontClass} min-h-screen bg-slate-50`}
+        className={`${inter.variable} ${notoBengali.variable} ${notoDevanagari.variable} ${fontClass} min-h-screen bg-slate-50`}
       >
         <NextIntlClientProvider messages={messages}>
           <div className="mx-auto max-w-md min-h-screen flex flex-col bg-white shadow-sm">

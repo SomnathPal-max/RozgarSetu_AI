@@ -1,11 +1,15 @@
 import { createClient } from '@libsql/client';
 import bcrypt from 'bcryptjs';
 
+const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || 'file:./rozgarsetu.db';
+const authToken = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN;
+
 const client = createClient({
-  url: process.env.DATABASE_URL || 'file:./rozgarsetu.db',
+  url,
+  authToken,
 });
 
-async function main() {
+export async function seedDatabase() {
   console.log('🌱 Starting RozgarSetu AI seed on fictional data...');
 
   // 1. Create tables if they do not exist
@@ -202,10 +206,10 @@ async function main() {
     await client.execute(`DELETE FROM ${tbl};`);
   }
 
-  // 2. Seed Users
-  const userPasswordHash = await bcrypt.hash('demo123', 10);
-  const reviewerPasswordHash = await bcrypt.hash('review123', 10);
-  const adminPasswordHash = await bcrypt.hash('admin123', 10);
+  // 2. Seed Users (All fictitious demo accounts with fake 00000-series mobile numbers)
+  const userPasswordHash = await bcrypt.hash('demo_user_123', 10);
+  const reviewerPasswordHash = await bcrypt.hash('demo_review_123', 10);
+  const adminPasswordHash = await bcrypt.hash('demo_admin_123', 10);
 
   await client.execute({
     sql: `INSERT INTO users (id, name, mobile, password_hash, dob, qualification_level, qualification_stream, category, disability, preferred_district, language, role, created_at)
@@ -213,7 +217,7 @@ async function main() {
     args: [
       'user-1',
       'Illustrative Candidate',
-      '9000000001',
+      '0000000001',
       userPasswordHash,
       '2002-05-15', // Age 24 on 2026-08-01
       'higher_secondary',
@@ -230,19 +234,19 @@ async function main() {
   await client.execute({
     sql: `INSERT INTO users (id, name, mobile, password_hash, dob, qualification_level, language, role, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: ['rev-1', 'Demo Reviewer 1', '9000000002', reviewerPasswordHash, '1990-01-01', 'graduate', 'en', 'reviewer', '2026-10-01T09:00:00Z'],
+    args: ['rev-1', 'Demo Reviewer 1', '0000000002', reviewerPasswordHash, '1990-01-01', 'graduate', 'en', 'reviewer', '2026-10-01T09:00:00Z'],
   });
 
   await client.execute({
     sql: `INSERT INTO users (id, name, mobile, password_hash, dob, qualification_level, language, role, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: ['rev-2', 'Demo Reviewer 2', '9000000003', reviewerPasswordHash, '1992-02-02', 'graduate', 'en', 'reviewer2', '2026-10-01T09:00:00Z'],
+    args: ['rev-2', 'Demo Reviewer 2', '0000000003', reviewerPasswordHash, '1992-02-02', 'graduate', 'en', 'reviewer2', '2026-10-01T09:00:00Z'],
   });
 
   await client.execute({
     sql: `INSERT INTO users (id, name, mobile, password_hash, dob, qualification_level, language, role, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: ['admin-1', 'Demo Administrator', '9000000004', adminPasswordHash, '1985-03-03', 'postgraduate', 'en', 'admin', '2026-10-01T09:00:00Z'],
+    args: ['admin-1', 'Demo Administrator', '0000000004', adminPasswordHash, '1985-03-03', 'postgraduate', 'en', 'admin', '2026-10-01T09:00:00Z'],
   });
 
   // 3. Seed Sources (All Fictional per AGENTS.md rule 10)
@@ -629,7 +633,9 @@ async function main() {
   console.log('✅ Seed complete: 4 users, 4 sources, 6 vacancies (3 gov, 3 MSME), rules, document items, verification checks, scam flags, reports, saved jobs.');
 }
 
-main().catch((err) => {
-  console.error('❌ Seed failed:', err);
-  process.exit(1);
-});
+if (typeof require !== 'undefined' && require.main === module) {
+  seedDatabase().catch((err) => {
+    console.error('❌ Seed failed:', err);
+    process.exit(1);
+  });
+}

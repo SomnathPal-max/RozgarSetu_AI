@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Search, UserPlus } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -67,6 +68,84 @@ export function Screen1Client({ locale }: Screen1ClientProps) {
             <p className="text-[11px] text-slate-500 text-center leading-normal">
               Only necessary details are asked: name, mobile, date of birth, qualification.
             </p>
+          </div>
+
+          {/* Quick Evaluator Guide: "Try it in 2 minutes" */}
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>⏱️ Try it in 2 minutes (Evaluator Guide)</span>
+              </span>
+              <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">
+                Judge Tour
+              </span>
+            </div>
+
+            <ol className="text-xs text-slate-700 space-y-2 list-decimal list-inside leading-relaxed">
+              <li>
+                <strong>Check Eligibility:</strong> Click above to test Notice A. Pure engine rules determine age and education matches.
+              </li>
+              <li>
+                <strong>Gap Coach & Receipt:</strong> Open Gap Coach for action steps, hear spoken explanation, or download PDF receipt.
+              </li>
+              <li>
+                <strong>Notice Watch:</strong> Save Notice A, simulate a corrigendum deadline update, and see instant live alerts.
+              </li>
+              <li>
+                <strong>Scam Shield & Dual Review:</strong> File a scam flag on an MSME notice and test the server-enforced two-reviewer queue.
+              </li>
+            </ol>
+
+            <div className="pt-2 border-t border-indigo-100 space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold text-indigo-950">
+                <span>Demo Accounts (Fictitious Numbers)</span>
+                <Link
+                  href={`/${locale}/admin/login`}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold"
+                >
+                  Reviewer Portal →
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-600">
+                <div className="bg-white p-2 rounded-lg border border-indigo-100">
+                  <div className="font-semibold text-slate-800">Job Seeker</div>
+                  <div className="font-mono text-slate-600">0000000001</div>
+                  <div className="text-[10px] text-slate-400">Pass: demo_user_123</div>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-indigo-100">
+                  <div className="font-semibold text-slate-800">Reviewer 1</div>
+                  <div className="font-mono text-slate-600">0000000002</div>
+                  <div className="text-[10px] text-slate-400">Pass: demo_review_123</div>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-slate-500 italic">
+                * All passwords and mobile numbers are strictly invented demo data.
+              </p>
+            </div>
+
+            {/* Reset Demo Data Button */}
+            <div className="pt-1">
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/reset-demo', { method: 'POST' });
+                    if (res.ok) {
+                      alert('✅ Demo database reset to initial seed successfully.');
+                      window.location.reload();
+                    } else {
+                      alert('Failed to reset demo data.');
+                    }
+                  } catch {
+                    alert('Error connecting to reset API.');
+                  }
+                }}
+                className="w-full text-center py-2 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium transition-colors min-h-[40px]"
+              >
+                🔄 Reset Demo Data (Restore Initial State)
+              </button>
+            </div>
           </div>
         </section>
       </div>

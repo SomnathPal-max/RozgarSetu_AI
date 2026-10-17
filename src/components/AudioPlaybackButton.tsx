@@ -89,6 +89,10 @@ export function AudioPlaybackButton({ textToSpeak, locale }: AudioPlaybackButton
         )}
       </button>
 
+      <div className="text-[10px] text-slate-400 text-center">
+        * Web Speech API (device voice dependent; server-rendered TTS planned for low-cost Android compatibility)
+      </div>
+
       {showFallback && (
         <div className="flex items-center justify-center gap-1.5 text-xs text-amber-700 bg-amber-50 rounded-lg p-2 border border-amber-200">
           <VolumeX className="w-3.5 h-3.5 shrink-0" />
