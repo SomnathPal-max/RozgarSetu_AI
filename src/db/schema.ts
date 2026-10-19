@@ -32,8 +32,8 @@ export const vacancies = sqliteTable('vacancies', {
   id: text('id').primaryKey(),
   type: text('type').notNull(), // 'government' | 'msme'
   title: text('title').notNull(),
-  orgName: text('org_name').notNull(), // Fictional name
-  area: text('area').notNull(), // e.g. "Durgapur area", "Asansol area"
+  orgName: text('org_name').notNull(), // Recruiting Body name
+  area: text('area').notNull(), // e.g. "Durgapur area", "Asansol area", "All India", "State-wide"
   sourceId: text('source_id').references(() => sources.id),
   sourceUrl: text('source_url').notNull(),
   publishedOn: text('published_on').notNull(), // YYYY-MM-DD
@@ -43,6 +43,20 @@ export const vacancies = sqliteTable('vacancies', {
   advertisedPayMin: integer('advertised_pay_min'),
   advertisedPayMax: integer('advertised_pay_max'),
   currentNoticeVersionId: text('current_notice_version_id'),
+  // Production metadata
+  noticeNumber: text('notice_number'), // Official gazette / recruitment notice number
+  gazettePdfUrl: text('gazette_pdf_url'), // Link to full official notice PDF
+  officialWebsiteUrl: text('official_website_url'), // Link to official recruiting body domain
+  applicationPortalUrl: text('application_portal_url'), // Link to official online application portal
+  feeGeneral: integer('fee_general').default(0), // Application fee in INR
+  feeVaivedFor: text('fee_waived_for'), // e.g. "SC / ST / PwBD / Female candidates"
+  examDateTentative: text('exam_date_tentative'), // Tentative exam month/year
+  totalVacancies: integer('total_vacancies'),
+  firstReviewerId: text('first_reviewer_id'),
+  firstReviewedAt: text('first_reviewed_at'),
+  secondReviewerId: text('second_reviewer_id'),
+  secondReviewedAt: text('second_reviewed_at'),
+  isSourceChecked: integer('is_source_checked', { mode: 'boolean' }).notNull().default(true),
 });
 
 // 4. Notice Versions
@@ -54,6 +68,21 @@ export const noticeVersions = sqliteTable('notice_versions', {
   snapshotJson: text('snapshot_json').notNull(), // JSON: { deadline, requirements, documents }
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
   changeNote: text('change_note'),
+});
+
+// 4b. Corrigenda & Amendments
+export const corrigenda = sqliteTable('corrigenda', {
+  id: text('id').primaryKey(),
+  vacancyId: text('vacancy_id').notNull().references(() => vacancies.id),
+  corrigendumNumber: text('corrigendum_number').notNull(),
+  amendmentType: text('amendment_type').notNull(), // 'deadline_extended' | 'age_relaxed' | 'vacancy_revised' | 'clarification'
+  oldDeadline: text('old_deadline'),
+  newDeadline: text('new_deadline'),
+  summaryEn: text('summary_en').notNull(),
+  summaryHi: text('summary_hi'),
+  summaryBn: text('summary_bn'),
+  pdfUrl: text('pdf_url'),
+  publishedAt: text('published_at').notNull().default(new Date().toISOString()),
 });
 
 // 5. Rules
@@ -75,6 +104,8 @@ export const documentItems = sqliteTable('document_items', {
   requiredAlways: integer('required_always', { mode: 'boolean' }).notNull().default(true),
   conditionNote: text('condition_note'), // e.g. "only if claiming relaxation"
   formatNote: text('format_note'), // e.g. "in the size the notice asks"
+  issuingAuthority: text('issuing_authority'), // e.g. "SDO / District Magistrate / Tehsildar"
+  validityNotes: text('validity_notes'), // e.g. "Must be issued for FY 2026-27"
 });
 
 // 7. Verification Checks
@@ -100,15 +131,21 @@ export const scamFlags = sqliteTable('scam_flags', {
   appliedOn: text('applied_on'),
 });
 
-// 9. Saved Jobs (tracker and user progress)
+// 9. Saved Jobs & 6-Stage Application Lifecycle (set only by user per AGENTS.md rule 5)
 export const savedJobs = sqliteTable('saved_jobs', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id),
   vacancyId: text('vacancy_id').notNull().references(() => vacancies.id),
-  progress: text('progress').notNull().default('saved'), // 'saved' | 'applied' | 'interview' (set only by user per AGENTS.md rule 5)
+  progress: text('progress').notNull().default('saved'), // 'saved' | 'applied' | 'admit_card' | 'exam' | 'result' | 'interview'
+  registrationNumber: text('registration_number'), // Application / Registration Number
+  rollNumber: text('roll_number'), // Exam Roll Number / Hall Ticket Number
+  examDate: text('exam_date'), // YYYY-MM-DD
+  examCenter: text('exam_center'), // City / Venue
+  candidateNotes: text('candidate_notes'), // Private user notes
   lastSeenVersionId: text('last_seen_version_id'),
   reminderOn: text('reminder_on'), // YYYY-MM-DD
   smsConsent: integer('sms_consent', { mode: 'boolean' }).notNull().default(false),
+  updatedAt: text('updated_at').notNull().default(new Date().toISOString()),
 });
 
 // 10. Reports (user complaints)
@@ -147,7 +184,22 @@ export const auditLog = sqliteTable('audit_log', {
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
 
-// 13. Outbox (stubs for SMS / in-app reminders)
+// 13. Verification Receipts (Public Cryptographic Verification Hub /verify/[hash])
+export const verificationReceipts = sqliteTable('verification_receipts', {
+  id: text('id').primaryKey(),
+  receiptHash: text('receipt_hash').notNull().unique(), // SHA-256 hash
+  vacancyId: text('vacancy_id').notNull().references(() => vacancies.id),
+  vacancyTitle: text('vacancy_title').notNull(),
+  candidateAgeOnCutoff: text('candidate_age_on_cutoff').notNull(),
+  candidateQualification: text('candidate_qualification').notNull(),
+  candidateCategory: text('candidate_category'),
+  evaluationResultJson: text('evaluation_result_json').notNull(), // Array of criteria verdicts
+  rulesVersion: text('rules_version').notNull(),
+  generatedAt: text('generated_at').notNull().default(new Date().toISOString()),
+  isHelperMode: integer('is_helper_mode', { mode: 'boolean' }).notNull().default(false),
+});
+
+// 14. Outbox (stubs for SMS / in-app reminders)
 export const outbox = sqliteTable('outbox', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id),
@@ -156,3 +208,4 @@ export const outbox = sqliteTable('outbox', {
   payloadJson: text('payload_json').notNull(),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
+

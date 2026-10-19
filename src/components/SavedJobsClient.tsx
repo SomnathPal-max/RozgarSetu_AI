@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
@@ -12,6 +12,10 @@ import {
   FileCheck2,
   RefreshCw,
   MessageSquare,
+  Calendar,
+  Edit3,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { BottomNav } from '@/components/BottomNav';
 import { type Locale } from '@/i18n/config';
@@ -29,7 +33,12 @@ interface SavedJob {
   id: string;
   userId: string;
   vacancyId: string;
-  progress: 'saved' | 'applied' | 'interview';
+  progress: 'saved' | 'applied' | 'admit_card' | 'exam' | 'result' | 'interview';
+  registrationNumber?: string | null;
+  rollNumber?: string | null;
+  examDate?: string | null;
+  examCenter?: string | null;
+  candidateNotes?: string | null;
   lastSeenVersionId: string | null;
   reminderOn: string | null;
   smsConsent: boolean;
@@ -63,28 +72,55 @@ export function SavedJobsClient({ locale }: SavedJobsClientProps) {
   const [selectedDiffJob, setSelectedDiffJob] = useState<SavedJob | null>(null);
   const [restamping, setRestamping] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [expandedDetailsId, setExpandedDetailsId] = useState<string | null>(null);
+  const [editingDetails, setEditingDetails] = useState<{
+    [jobId: string]: {
+      registrationNumber: string;
+      rollNumber: string;
+      examDate: string;
+      examCenter: string;
+      candidateNotes: string;
+    };
+  }>({});
+  const [savingDetails, setSavingDetails] = useState(false);
 
-  const fetchSaved = async () => {
+  const fetchSaved = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/saved');
       if (res.ok) {
         const data = await res.json();
-        setSavedJobs(data.savedJobs || []);
+        const jobs: SavedJob[] = data.savedJobs || [];
+        setSavedJobs(jobs);
         setOutboxMessages(data.outboxMessages || []);
+
+        const initialDetails: typeof editingDetails = {};
+        for (const j of jobs) {
+          initialDetails[j.id] = {
+            registrationNumber: j.registrationNumber || '',
+            rollNumber: j.rollNumber || '',
+            examDate: j.examDate || '',
+            examCenter: j.examCenter || '',
+            candidateNotes: j.candidateNotes || '',
+          };
+        }
+        setEditingDetails(initialDetails);
       }
     } catch (err) {
       console.error('Failed to load saved jobs:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSaved();
-  }, []);
+  }, [fetchSaved]);
 
-  const handleProgressChange = async (jobId: string, newProgress: 'saved' | 'applied' | 'interview') => {
+  const handleProgressChange = async (
+    jobId: string,
+    newProgress: 'saved' | 'applied' | 'admit_card' | 'exam' | 'result' | 'interview'
+  ) => {
     try {
       const res = await fetch(`/api/saved/${jobId}`, {
         method: 'PATCH',
@@ -96,12 +132,80 @@ export function SavedJobsClient({ locale }: SavedJobsClientProps) {
         setSavedJobs((prev) =>
           prev.map((j) => (j.id === jobId ? { ...j, progress: newProgress } : j))
         );
+        if (newProgress !== 'saved') {
+          setExpandedDetailsId(jobId);
+        }
         setActionMessage(`Status updated to ${t(newProgress as 'saved')}`);
         setTimeout(() => setActionMessage(null), 3000);
       }
     } catch (err) {
       console.error('Failed to update progress:', err);
     }
+  };
+
+  const handleSaveDetails = async (jobId: string) => {
+    try {
+      setSavingDetails(true);
+      const details = editingDetails[jobId] || {
+        registrationNumber: '',
+        rollNumber: '',
+        examDate: '',
+        examCenter: '',
+        candidateNotes: '',
+      };
+
+      const res = await fetch(`/api/saved/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(details),
+      });
+
+      if (res.ok) {
+        setSavedJobs((prev) =>
+          prev.map((j) => (j.id === jobId ? { ...j, ...details } : j))
+        );
+        setActionMessage(t('saveLifecycle') + ' ✓');
+        setTimeout(() => setActionMessage(null), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to save details:', err);
+    } finally {
+      setSavingDetails(false);
+    }
+  };
+
+  const handleDownloadIcs = (job: SavedJob) => {
+    const rawDate = job.examDate || job.vacancyLastDate || '2026-11-12';
+    const cleanDate = rawDate.replace(/-/g, '');
+    const title = job.progress === 'exam' ? `Exam: ${job.vacancyTitle}` : `Deadline: ${job.vacancyTitle}`;
+
+    const icsData = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//RozgarSetu AI//Candidate Tracker//EN',
+      'BEGIN:VEVENT',
+      `UID:rozgarsetu-${job.id}-${Date.now()}@rozgarsetu.internal`,
+      `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
+      `DTSTART;VALUE=DATE:${cleanDate}`,
+      `DTEND;VALUE=DATE:${cleanDate}`,
+      `SUMMARY:${title} (${job.vacancyOrgName})`,
+      `DESCRIPTION:Tracked on RozgarSetu AI. Stage: ${job.progress}. Registration: ${job.registrationNumber || 'Not entered'}.`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+
+    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${job.vacancyId}-tracker.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setActionMessage(t('calendarExport') + ' ✓');
+    setTimeout(() => setActionMessage(null), 3000);
   };
 
   const handleSmsConsentToggle = async (job: SavedJob) => {
@@ -249,19 +353,19 @@ export function SavedJobsClient({ locale }: SavedJobsClientProps) {
                   </span>
                 </div>
 
-                {/* Segmented Progress Selector */}
+                {/* Segmented Progress Selector (6 stages) */}
                 <div
-                  className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl"
+                  className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-100 p-1 rounded-xl"
                   role="radiogroup"
                   aria-label={t('yourProgress')}
                 >
-                  {(['saved', 'applied', 'interview'] as const).map((step) => {
+                  {(['saved', 'applied', 'admit_card', 'exam', 'result', 'interview'] as const).map((step) => {
                     const isActive = job.progress === step;
                     return (
                       <button
                         key={step}
                         onClick={() => handleProgressChange(job.id, step)}
-                        className={`py-2 px-1 text-xs font-semibold rounded-lg transition-all min-h-[40px] ${
+                        className={`py-2 px-1 text-[11px] font-semibold rounded-lg transition-all min-h-[38px] ${
                           isActive
                             ? 'bg-blue-600 text-white shadow-xs'
                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -279,15 +383,199 @@ export function SavedJobsClient({ locale }: SavedJobsClientProps) {
                 <p className="text-[11px] text-slate-500 font-medium leading-relaxed italic pt-0.5">
                   &ldquo;{t('progressDisclaimer')}&rdquo;
                 </p>
+
+                {/* Collapsible Candidate Application Details Form */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedDetailsId(expandedDetailsId === job.id ? null : job.id)
+                    }
+                    className="w-full flex items-center justify-between text-xs font-semibold text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 px-3 py-2 rounded-lg transition-colors border border-blue-200 min-h-[38px]"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{t('candidateNotes')} & Roll / Reg details</span>
+                    </span>
+                    {expandedDetailsId === job.id ? (
+                      <ChevronUp className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-blue-600" />
+                    )}
+                  </button>
+
+                  {expandedDetailsId === job.id && (
+                    <div className="mt-2.5 p-3 rounded-xl border border-blue-100 bg-blue-50/30 space-y-3 animate-in fade-in duration-150">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            {t('registrationNumber')}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 2026-WB-098234"
+                            value={editingDetails[job.id]?.registrationNumber || ''}
+                            onChange={(e) =>
+                              setEditingDetails((prev) => ({
+                                ...prev,
+                                [job.id]: {
+                                  ...(prev[job.id] || {
+                                    registrationNumber: '',
+                                    rollNumber: '',
+                                    examDate: '',
+                                    examCenter: '',
+                                    candidateNotes: '',
+                                  }),
+                                  registrationNumber: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[36px]"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            {t('rollNumber')}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. ROLL-88204"
+                            value={editingDetails[job.id]?.rollNumber || ''}
+                            onChange={(e) =>
+                              setEditingDetails((prev) => ({
+                                ...prev,
+                                [job.id]: {
+                                  ...(prev[job.id] || {
+                                    registrationNumber: '',
+                                    rollNumber: '',
+                                    examDate: '',
+                                    examCenter: '',
+                                    candidateNotes: '',
+                                  }),
+                                  rollNumber: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[36px]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            {t('examDate')}
+                          </label>
+                          <input
+                            type="date"
+                            value={editingDetails[job.id]?.examDate || ''}
+                            onChange={(e) =>
+                              setEditingDetails((prev) => ({
+                                ...prev,
+                                [job.id]: {
+                                  ...(prev[job.id] || {
+                                    registrationNumber: '',
+                                    rollNumber: '',
+                                    examDate: '',
+                                    examCenter: '',
+                                    candidateNotes: '',
+                                  }),
+                                  examDate: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[36px]"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            {t('examCenter')}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Asansol / Durgapur Center A"
+                            value={editingDetails[job.id]?.examCenter || ''}
+                            onChange={(e) =>
+                              setEditingDetails((prev) => ({
+                                ...prev,
+                                [job.id]: {
+                                  ...(prev[job.id] || {
+                                    registrationNumber: '',
+                                    rollNumber: '',
+                                    examDate: '',
+                                    examCenter: '',
+                                    candidateNotes: '',
+                                  }),
+                                  examCenter: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[36px]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        <label className="font-semibold text-slate-700 block">
+                          {t('candidateNotes')}
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="e.g. Application fee receipt saved; check OBC-NCL renewal on 15 Oct."
+                          value={editingDetails[job.id]?.candidateNotes || ''}
+                          onChange={(e) =>
+                            setEditingDetails((prev) => ({
+                              ...prev,
+                              [job.id]: {
+                                ...(prev[job.id] || {
+                                  registrationNumber: '',
+                                  rollNumber: '',
+                                  examDate: '',
+                                  examCenter: '',
+                                  candidateNotes: '',
+                                }),
+                                candidateNotes: e.target.value,
+                              },
+                            }))
+                          }
+                          className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSaveDetails(job.id)}
+                        disabled={savingDetails}
+                        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs py-2 px-3 shadow-xs transition-colors min-h-[38px] flex items-center justify-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{savingDetails ? 'Saving...' : t('saveLifecycle')}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Reminder Section & Outbox */}
+              {/* Reminder Section & Calendar Export */}
               <div className="space-y-2 pt-1 border-t border-slate-100">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
                   <span className="flex items-center gap-1.5">
                     <Bell className="w-3.5 h-3.5 text-blue-600" />
                     <span>{t('reminderLabel')}</span>
                   </span>
+
+                  {/* Add to Calendar (.ics) export button */}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadIcs(job)}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-md transition-colors"
+                    title={t('calendarExport')}
+                  >
+                    <Calendar className="w-3 h-3 text-blue-600" />
+                    <span>{t('calendarExport')}</span>
+                  </button>
                 </div>
 
                 {/* SMS Consent Checkbox */}

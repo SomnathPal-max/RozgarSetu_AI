@@ -196,6 +196,73 @@ export async function seedDatabase() {
     );
   `);
 
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS corrigenda (
+      id TEXT PRIMARY KEY,
+      vacancy_id TEXT NOT NULL,
+      corrigendum_number TEXT NOT NULL,
+      amendment_type TEXT NOT NULL,
+      old_deadline TEXT,
+      new_deadline TEXT,
+      summary_en TEXT NOT NULL,
+      summary_hi TEXT,
+      summary_bn TEXT,
+      pdf_url TEXT,
+      published_at TEXT NOT NULL,
+      FOREIGN KEY (vacancy_id) REFERENCES vacancies (id)
+    );
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS verification_receipts (
+      id TEXT PRIMARY KEY,
+      receipt_hash TEXT NOT NULL UNIQUE,
+      vacancy_id TEXT NOT NULL,
+      vacancy_title TEXT NOT NULL,
+      candidate_age_on_cutoff TEXT NOT NULL,
+      candidate_qualification TEXT NOT NULL,
+      candidate_category TEXT,
+      evaluation_result_json TEXT NOT NULL,
+      rules_version TEXT NOT NULL,
+      generated_at TEXT NOT NULL,
+      is_helper_mode INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (vacancy_id) REFERENCES vacancies (id)
+    );
+  `);
+
+  // Run safe schema migrations for new production columns
+  const alterStatements = [
+    'ALTER TABLE vacancies ADD COLUMN notice_number TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN gazette_pdf_url TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN official_website_url TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN application_portal_url TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN fee_general INTEGER DEFAULT 0;',
+    'ALTER TABLE vacancies ADD COLUMN fee_waived_for TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN exam_date_tentative TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN total_vacancies INTEGER;',
+    'ALTER TABLE vacancies ADD COLUMN first_reviewer_id TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN first_reviewed_at TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN second_reviewer_id TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN second_reviewed_at TEXT;',
+    'ALTER TABLE vacancies ADD COLUMN is_source_checked INTEGER DEFAULT 1;',
+    'ALTER TABLE saved_jobs ADD COLUMN registration_number TEXT;',
+    'ALTER TABLE saved_jobs ADD COLUMN roll_number TEXT;',
+    'ALTER TABLE saved_jobs ADD COLUMN exam_date TEXT;',
+    'ALTER TABLE saved_jobs ADD COLUMN exam_center TEXT;',
+    'ALTER TABLE saved_jobs ADD COLUMN candidate_notes TEXT;',
+    'ALTER TABLE saved_jobs ADD COLUMN updated_at TEXT;',
+    'ALTER TABLE document_items ADD COLUMN issuing_authority TEXT;',
+    'ALTER TABLE document_items ADD COLUMN validity_notes TEXT;',
+  ];
+
+  for (const sql of alterStatements) {
+    try {
+      await client.execute(sql);
+    } catch {
+      // Column already exists, safe to ignore
+    }
+  }
+
   // Clear existing seed data cleanly
   const tables = [
     'outbox', 'audit_log', 'decisions', 'reports', 'saved_jobs',

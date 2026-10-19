@@ -2,6 +2,8 @@ import { setRequestLocale } from 'next-intl/server';
 import { EligibilityCheckClient } from '@/components/EligibilityCheckClient';
 import { locales, type Locale } from '@/i18n/config';
 
+export const dynamic = 'force-dynamic';
+
 export function generateStaticParams() {
   const ids = ['notice-a', 'notice-b', 'notice-c', 'msme-delivery', 'msme-packaging', 'msme-billing', 'demo'];
   const params: { locale: string; id: string }[] = [];
@@ -13,7 +15,7 @@ export function generateStaticParams() {
   return params;
 }
 
-export default async function EligibilityCheckPage({
+export default async function VacancyCheckPage({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;

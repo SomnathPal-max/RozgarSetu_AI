@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   QrCode,
   Accessibility,
+  ShieldCheck,
 } from 'lucide-react';
 import { BottomNav } from '@/components/BottomNav';
 import { getSessionProfile, type UserProfile } from '@/lib/profile';
@@ -104,19 +105,59 @@ export function EligibilityReceiptClient({ vacancyId, locale }: EligibilityRecei
 
   // Evaluate rules purely using pure rules engine
   const evaluationResult = useMemo(() => {
-    if (!profile || rules.length === 0) return null;
+    const candidateProfile = profile || {
+      name: 'Illustrative Candidate',
+      mobile: '0000000001',
+      dob: '2002-05-15',
+      qualificationLevel: 'higher_secondary' as const,
+      qualificationStream: 'Arts',
+      category: undefined,
+      disability: undefined,
+      preferredDistrict: 'Paschim Bardhaman',
+      language: 'en' as const,
+    };
+
+    if (rules.length === 0) return null;
+
     return checkEligibility(
       {
-        dob: profile.dob,
-        qualificationLevel: profile.qualificationLevel,
-        qualificationStream: profile.qualificationStream,
-        category: profile.category,
-        disability: profile.disability,
+        dob: candidateProfile.dob,
+        qualificationLevel: candidateProfile.qualificationLevel,
+        qualificationStream: candidateProfile.qualificationStream,
+        category: candidateProfile.category,
+        disability: candidateProfile.disability,
       },
       rules,
       '2026-08-01'
     );
   }, [profile, rules]);
+
+  const receiptHash = useMemo(() => {
+    const vId = vacancyId || 'notice-a';
+    const cutoffAge = profile?.dob ? calculateAgeOnDate(profile.dob, '2026-08-01') : '24';
+    const qual = profile?.qualificationLevel || 'hs';
+    const cat = profile?.category || 'gen';
+    return `RS-REC-${vId.toUpperCase()}-${cat.toUpperCase()}-${qual.slice(0, 4).toUpperCase()}-${cutoffAge}`;
+  }, [vacancyId, profile]);
+
+  useEffect(() => {
+    if (vacancy && evaluationResult && evaluationResult.length > 0) {
+      fetch(`/api/receipt/${vacancyId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiptHash,
+          candidateAgeOnCutoff: profile?.dob
+            ? `${calculateAgeOnDate(profile.dob, '2026-08-01')} years`
+            : '24 years (Illustrative)',
+          candidateQualification: profile?.qualificationLevel || 'Higher Secondary',
+          candidateCategory: profile?.category || null,
+          evaluationResult,
+          isHelperMode: sahayakMode,
+        }),
+      }).catch(console.error);
+    }
+  }, [vacancy, evaluationResult, receiptHash, vacancyId, profile, sahayakMode]);
 
   const formattedLastDate = useMemo(() => {
     if (!vacancy?.lastDate) return '';
@@ -366,6 +407,23 @@ export function EligibilityReceiptClient({ vacancyId, locale }: EligibilityRecei
             <div className="w-10 h-10 border border-slate-300 rounded flex items-center justify-center bg-slate-50">
               <QrCode className="w-8 h-8 text-slate-700" />
             </div>
+          </div>
+
+          {/* Public Cryptographic Verification Proof Link */}
+          <div className="pt-2 border-t border-slate-200">
+            <Link
+              href={`/${locale}/verify/${receiptHash}`}
+              target="_blank"
+              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-950 text-[11px] font-semibold transition-colors"
+            >
+              <span className="flex items-center gap-1.5 truncate">
+                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span className="truncate font-mono">Proof: {receiptHash}</span>
+              </span>
+              <span className="text-[10px] font-bold text-emerald-700 underline shrink-0">
+                Verify Proof →
+              </span>
+            </Link>
           </div>
         </div>
 

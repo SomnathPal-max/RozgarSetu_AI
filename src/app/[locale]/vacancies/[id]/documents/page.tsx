@@ -2,18 +2,13 @@ import { setRequestLocale } from 'next-intl/server';
 import { DocumentChecklistClient } from '@/components/DocumentChecklistClient';
 import { locales, type Locale } from '@/i18n/config';
 
+export const dynamic = 'force-dynamic';
+
 export function generateStaticParams() {
-  const ids = ['notice-a', 'notice-b', 'notice-c', 'msme-delivery', 'msme-packaging', 'msme-billing', 'demo'];
-  const params: { locale: string; id: string }[] = [];
-  for (const locale of locales) {
-    for (const id of ids) {
-      params.push({ locale, id });
-    }
-  }
-  return params;
+  return locales.map((locale) => ({ locale }));
 }
 
-export default async function DocumentChecklistPage({
+export default async function VacancyDocumentsPage({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;

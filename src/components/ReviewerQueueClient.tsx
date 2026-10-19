@@ -232,6 +232,12 @@ export function ReviewerQueueClient({ locale }: ReviewerQueueClientProps) {
             </h1>
             <div className="flex items-center gap-1.5">
               <Link
+                href={`/${locale}/admin/notices/new`}
+                className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md hover:bg-emerald-100 transition-colors"
+              >
+                + Ingest Notice
+              </Link>
+              <Link
                 href={`/${locale}/admin/notices`}
                 className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md hover:bg-indigo-100 transition-colors"
               >

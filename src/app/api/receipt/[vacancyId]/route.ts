@@ -63,3 +63,70 @@ export async function GET(
     );
   }
 }
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ vacancyId: string }> }
+) {
+  try {
+    const { vacancyId } = await params;
+    const body = await request.json();
+    const {
+      receiptHash,
+      candidateAgeOnCutoff = 'Not stated',
+      candidateQualification = 'Not stated',
+      candidateCategory = null,
+      evaluationResult = [],
+      isHelperMode = false,
+    } = body;
+
+    if (!receiptHash) {
+      return NextResponse.json({ error: 'receiptHash is required' }, { status: 400 });
+    }
+
+    const [vac] = await db
+      .select()
+      .from(vacancies)
+      .where(eq(vacancies.id, vacancyId));
+
+    if (!vac) {
+      return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
+    }
+
+    // Upsert or register receipt in verificationReceipts
+    const { verificationReceipts } = await import('@/db/schema');
+    const existing = await db
+      .select()
+      .from(verificationReceipts)
+      .where(eq(verificationReceipts.receiptHash, receiptHash));
+
+    if (existing.length === 0) {
+      await db.insert(verificationReceipts).values({
+        id: `rec-${Date.now()}`,
+        receiptHash,
+        vacancyId,
+        vacancyTitle: vac.title,
+        candidateAgeOnCutoff: String(candidateAgeOnCutoff),
+        candidateQualification: String(candidateQualification),
+        candidateCategory: candidateCategory ? String(candidateCategory) : null,
+        evaluationResultJson: JSON.stringify(evaluationResult),
+        rulesVersion: vac.currentNoticeVersionId || 'v1',
+        generatedAt: new Date().toISOString(),
+        isHelperMode: Boolean(isHelperMode),
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      receiptHash,
+      verifyUrl: `/verify/${receiptHash}`,
+    });
+  } catch (error) {
+    console.error('Error registering receipt:', error);
+    return NextResponse.json(
+      { error: 'Failed to register receipt' },
+      { status: 500 }
+    );
+  }
+}
+

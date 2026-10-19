@@ -12,7 +12,17 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { progress, reminderOn, smsConsent, restampVersion } = body;
+    const {
+      progress,
+      reminderOn,
+      smsConsent,
+      restampVersion,
+      registrationNumber,
+      rollNumber,
+      examDate,
+      examCenter,
+      candidateNotes,
+    } = body;
 
     const [savedJob] = await db
       .select()
@@ -23,11 +33,33 @@ export async function PATCH(
       return NextResponse.json({ error: 'Saved job not found' }, { status: 404 });
     }
 
-    const updates: Partial<typeof savedJobs.$inferInsert> = {};
+    const updates: Partial<typeof savedJobs.$inferInsert> = {
+      updatedAt: new Date().toISOString(),
+    };
 
     if (progress !== undefined) {
-      // AGENTS.md rule 5: 'saved' | 'applied' | 'interview' are set only by user
+      // AGENTS.md rule 5: Lifecycle stages set only by user
       updates.progress = progress;
+    }
+
+    if (registrationNumber !== undefined) {
+      updates.registrationNumber = registrationNumber;
+    }
+
+    if (rollNumber !== undefined) {
+      updates.rollNumber = rollNumber;
+    }
+
+    if (examDate !== undefined) {
+      updates.examDate = examDate;
+    }
+
+    if (examCenter !== undefined) {
+      updates.examCenter = examCenter;
+    }
+
+    if (candidateNotes !== undefined) {
+      updates.candidateNotes = candidateNotes;
     }
 
     if (reminderOn !== undefined) {
