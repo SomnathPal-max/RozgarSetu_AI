@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Bookmark, Shield } from 'lucide-react';
+import { Home, Bookmark, Shield, User } from 'lucide-react';
 import { type Locale } from '@/i18n/config';
 
 interface BottomNavProps {
@@ -15,18 +15,22 @@ export function BottomNav({ locale }: BottomNavProps) {
   const t = useTranslations('common');
   const pathname = usePathname();
   const [isReviewer, setIsReviewer] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in as reviewer/admin per access control rules
-    const hasReviewerCookie = document.cookie
-      .split('; ')
-      .some(
-        (row) =>
-          row.startsWith('rozgarsetu_role=reviewer') ||
-          row.startsWith('rozgarsetu_role=reviewer2') ||
-          row.startsWith('rozgarsetu_role=admin')
-      );
-    setIsReviewer(hasReviewerCookie);
+    const cookies = document.cookie.split(';').map((c) => c.trim());
+    const hasReviewer = cookies.some(
+      (c) =>
+        c.startsWith('rozgarsetu_role=reviewer') ||
+        c.startsWith('rozgarsetu_role=reviewer2') ||
+        c.startsWith('rozgarsetu_role=admin')
+    );
+    const inAdminArea = pathname.includes('/admin') && !pathname.includes('/admin/login');
+    setIsReviewer(hasReviewer || inAdminArea);
+
+    const hasSession = cookies.some((c) => c.startsWith('rozgarsetu_session='));
+    setIsLoggedIn(hasSession);
   }, [pathname]);
 
   const navItems = [
@@ -34,7 +38,13 @@ export function BottomNav({ locale }: BottomNavProps) {
     { href: `/${locale}/saved`, label: t('saved'), icon: Bookmark },
     ...(isReviewer
       ? [{ href: `/${locale}/admin`, label: t('admin'), icon: Shield }]
-      : []),
+      : [
+          {
+            href: isLoggedIn ? `/${locale}/saved` : `/${locale}/auth/login`,
+            label: isLoggedIn ? t('myAccount') : t('login'),
+            icon: User,
+          },
+        ]),
   ];
 
   return (

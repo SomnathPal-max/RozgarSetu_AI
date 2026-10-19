@@ -115,8 +115,11 @@ export function DocumentChecklistClient({ id, locale }: DocumentChecklistClientP
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-[calc(100vh-140px)] justify-center items-center py-12 text-slate-500 text-sm">
-        {t('documentChecklist')}...
+      <div className="flex flex-col min-h-[calc(100vh-140px)] justify-between space-y-6 pb-2">
+        <div className="flex flex-col justify-center items-center py-12 text-slate-500 text-sm">
+          {t('documentChecklist')}...
+        </div>
+        <BottomNav locale={locale} />
       </div>
     );
   }

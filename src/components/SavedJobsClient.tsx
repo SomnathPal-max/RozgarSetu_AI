@@ -16,6 +16,8 @@ import {
   Edit3,
   ChevronDown,
   ChevronUp,
+  User,
+  LogOut,
 } from 'lucide-react';
 import { BottomNav } from '@/components/BottomNav';
 import { type Locale } from '@/i18n/config';
@@ -83,6 +85,7 @@ export function SavedJobsClient({ locale }: SavedJobsClientProps) {
     };
   }>({});
   const [savingDetails, setSavingDetails] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; mobile: string } | null>(null);
 
   const fetchSaved = useCallback(async () => {
     try {
@@ -115,7 +118,30 @@ export function SavedJobsClient({ locale }: SavedJobsClientProps) {
 
   useEffect(() => {
     fetchSaved();
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : { authenticated: false }))
+      .then((d) => {
+        if (d.authenticated && d.user) {
+          setCurrentUser(d.user);
+        } else {
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => {});
   }, [fetchSaved]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setCurrentUser(null);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('rozgarsetu_user_profile');
+        window.location.href = `/${locale}`;
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   const handleProgressChange = async (
     jobId: string,
@@ -290,6 +316,57 @@ export function SavedJobsClient({ locale }: SavedJobsClientProps) {
             <span>{actionMessage}</span>
           </div>
         )}
+
+        {/* Candidate Account Ownership Banner */}
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 space-y-2 shadow-2xs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-slate-900 truncate">
+                  {currentUser ? currentUser.name : 'Illustrative Candidate (Demo)'}
+                </div>
+                <div className="text-[11px] text-slate-500 font-mono">
+                  {currentUser ? currentUser.mobile : '0000000001 (Demo Profile)'}
+                </div>
+              </div>
+            </div>
+
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-rose-200 transition-colors min-h-[44px]"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href={`/${locale}/auth/login`}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 min-h-[44px] flex items-center"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href={`/${locale}/auth/register`}
+                  className="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1.5 rounded-lg min-h-[44px] flex items-center"
+                >
+                  Create Account
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
+            {currentUser
+              ? '🔒 Personal Account: All saved vacancies, exam dates, registration numbers, and candidate notes belong strictly to your account.'
+              : 'ℹ️ Demo Mode: Applications shown below are sample records. Create or log into your own account to keep your applications private.'}
+          </p>
+        </div>
 
         {/* Empty state */}
         {savedJobs.length === 0 && (

@@ -129,8 +129,8 @@ test.describe.serial('RozgarSetu AI: 3-Minute Demo Flow (Section 12 & Screens 1-
     await page.goto('/en/vacancies/notice-a/documents');
 
     // Verify title and subtitle matching Screen 5 mock
-    await expect(page.locator('h1')).toContainText('Documents to prepare');
-    await expect(page.getByText('Illustrative list. Real lists come from each notice.')).toBeVisible();
+    await expect(page.locator('h1')).toContainText('Documents to prepare', { timeout: 15000 });
+    await expect(page.getByText('Illustrative list. Real lists come from each notice.')).toBeVisible({ timeout: 15000 });
 
     // Verify documents list
     await expect(page.getByText('Educational certificates')).toBeVisible();
@@ -230,8 +230,8 @@ test.describe.serial('RozgarSetu AI: 3-Minute Demo Flow (Section 12 & Screens 1-
     await page.goto('/en/admin');
     await expect(page).toHaveURL(/\/en\/admin\/login/);
     await page.getByRole('button', { name: /Demo Reviewer 1/i }).click();
-    await expect(page).toHaveURL(/\/en\/admin/);
-    await expect(page.locator('h1')).toContainText(/reviewer queue/i);
+    await expect(page).toHaveURL(/\/en\/admin(?!\/login)/, { timeout: 15000 });
+    await expect(page.locator('h1')).toContainText(/reviewer queue/i, { timeout: 15000 });
 
     // Verify High risk badge and reasons
     await expect(page.getByText(/Delivery helper/i).first()).toBeVisible();

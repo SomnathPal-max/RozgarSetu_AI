@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldCheck, ShieldAlert, UserCheck, ArrowLeft, KeyRound } from 'lucide-react';
 import { type Locale } from '@/i18n/config';
@@ -11,7 +10,6 @@ interface ReviewerLoginClientProps {
 }
 
 export function ReviewerLoginClient({ locale }: ReviewerLoginClientProps) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,8 +24,7 @@ export function ReviewerLoginClient({ locale }: ReviewerLoginClientProps) {
       });
 
       if (res.ok) {
-        router.push(`/${locale}/admin`);
-        router.refresh();
+        window.location.href = `/${locale}/admin`;
       } else {
         const data = await res.json();
         setError(data.error || 'Login failed');

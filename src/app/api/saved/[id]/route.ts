@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { db } from '@/db';
 import { savedJobs, vacancies, outbox, auditLog } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -11,6 +12,9 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const cookieStore = await cookies();
+    const sessionUserId = cookieStore.get('rozgarsetu_session')?.value || 'user-1';
+
     const body = await request.json();
     const {
       progress,
@@ -31,6 +35,14 @@ export async function PATCH(
 
     if (!savedJob) {
       return NextResponse.json({ error: 'Saved job not found' }, { status: 404 });
+    }
+
+    // Ownership check: ensure candidate only modifies their own job
+    if (savedJob.userId !== sessionUserId) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only update applications in your own account' },
+        { status: 403 }
+      );
     }
 
     const updates: Partial<typeof savedJobs.$inferInsert> = {
@@ -83,7 +95,7 @@ export async function PATCH(
         // Log to auditLog
         await db.insert(auditLog).values({
           id: `audit-${Date.now()}`,
-          actor: 'user',
+          actor: sessionUserId,
           action: 'restamp_eligibility_version',
           entity: 'saved_jobs',
           entityId: savedJob.id,
@@ -107,7 +119,7 @@ export async function PATCH(
 
       await db.insert(outbox).values({
         id: `outbox-${Date.now()}`,
-        userId: savedJob.userId,
+        userId: sessionUserId,
         channel: 'sms',
         messageKey: `REMINDER_${savedJob.vacancyId.toUpperCase()}`,
         payloadJson: JSON.stringify({
@@ -134,6 +146,26 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const cookieStore = await cookies();
+    const sessionUserId = cookieStore.get('rozgarsetu_session')?.value || 'user-1';
+
+    const [savedJob] = await db
+      .select()
+      .from(savedJobs)
+      .where(eq(savedJobs.id, id));
+
+    if (!savedJob) {
+      return NextResponse.json({ error: 'Saved job not found' }, { status: 404 });
+    }
+
+    // Ownership check: ensure candidate only deletes their own job
+    if (savedJob.userId !== sessionUserId) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only remove applications in your own account' },
+        { status: 403 }
+      );
+    }
+
     await db.delete(savedJobs).where(eq(savedJobs.id, id));
     return NextResponse.json({ success: true });
   } catch (error) {

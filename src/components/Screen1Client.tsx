@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, LogIn } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ProfileModal } from '@/components/ProfileModal';
 import { BottomNav } from '@/components/BottomNav';
@@ -56,17 +56,26 @@ export function Screen1Client({ locale }: Screen1ClientProps) {
             </button>
           </div>
 
-          {/* Card 2: Create account */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
-            <button
-              onClick={() => setModalMode('create_account')}
-              className="w-full rounded-xl border-2 border-slate-300 bg-white py-3 px-4 text-slate-800 font-semibold text-sm hover:border-slate-400 hover:bg-slate-50 active:bg-slate-100 transition-colors flex items-center justify-center gap-2 min-h-[48px]"
-            >
-              <UserPlus className="w-4 h-4 text-slate-600" />
-              <span>{t('createAccount')}</span>
-            </button>
+          {/* Card 2: Create account & Log In */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2.5 shadow-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Link
+                href={`/${locale}/auth/register`}
+                className="w-full rounded-xl border-2 border-slate-300 bg-white py-3 px-3 text-slate-800 font-bold text-xs sm:text-sm hover:border-slate-400 hover:bg-slate-50 active:bg-slate-100 transition-colors flex items-center justify-center gap-2 min-h-[48px]"
+              >
+                <UserPlus className="w-4 h-4 text-slate-600" />
+                <span>{t('createAccount')}</span>
+              </Link>
+              <Link
+                href={`/${locale}/auth/login`}
+                className="w-full rounded-xl bg-slate-900 text-white py-3 px-3 font-bold text-xs sm:text-sm hover:bg-black active:bg-slate-800 transition-colors flex items-center justify-center gap-2 min-h-[48px]"
+              >
+                <LogIn className="w-4 h-4 text-slate-300" />
+                <span>Log In</span>
+              </Link>
+            </div>
             <p className="text-[11px] text-slate-500 text-center leading-normal">
-              Only necessary details are asked: name, mobile, date of birth, qualification.
+              Private candidate accounts: each user securely manages their own applications, notes, and exam schedules.
             </p>
           </div>
 

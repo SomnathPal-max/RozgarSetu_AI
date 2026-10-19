@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { X, UserCheck } from 'lucide-react';
 import { saveSessionProfile, type UserProfile } from '@/lib/profile';
 import { type QualificationLevel } from '@/engine';
@@ -17,7 +16,6 @@ interface ProfileModalProps {
 
 export function ProfileModal({ isOpen, onClose, mode, locale }: ProfileModalProps) {
   const t = useTranslations('profileForm');
-  const router = useRouter();
 
   // Pre-filled with mock-up test profile defaults (Screen 4 reproduction: Age 24, Higher Secondary, category blank)
   const [name, setName] = useState('Illustrative Candidate');
@@ -63,7 +61,7 @@ export function ProfileModal({ isOpen, onClose, mode, locale }: ProfileModalProp
 
     setIsSubmitting(false);
     onClose();
-    router.push(`/${locale}/vacancies`);
+    window.location.href = `/${locale}/vacancies`;
   };
 
   return (

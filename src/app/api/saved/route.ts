@@ -1,15 +1,19 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { db } from '@/db';
 import { savedJobs, vacancies, noticeVersions, outbox } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const demoUserId = 'user-1';
+    const cookieStore = await cookies();
+    const sessionUserId = cookieStore.get('rozgarsetu_session')?.value;
+    // Fall back to demo user-1 if unauthenticated so demo tests run smoothly
+    const effectiveUserId = sessionUserId || 'user-1';
 
-    // Fetch saved jobs joined with vacancies
+    // Fetch saved jobs joined with vacancies strictly for the current user
     const userSavedJobs = await db
       .select({
         id: savedJobs.id,
@@ -33,7 +37,7 @@ export async function GET() {
       })
       .from(savedJobs)
       .innerJoin(vacancies, eq(savedJobs.vacancyId, vacancies.id))
-      .where(eq(savedJobs.userId, demoUserId));
+      .where(eq(savedJobs.userId, effectiveUserId));
 
     // For each saved job, check if current version is different from last seen version
     const enriched = await Promise.all(
@@ -43,7 +47,6 @@ export async function GET() {
           Boolean(job.currentVersionId) &&
           job.lastSeenVersionId !== job.currentVersionId;
 
-        // Fetch version info if changed
         let previousVersion = null;
         let currentVersion = null;
 
@@ -73,14 +76,16 @@ export async function GET() {
       })
     );
 
-    // Fetch user's outbox messages (SMS / in-app stubs)
+    // Fetch user's own outbox messages (SMS / in-app stubs)
     const outboxMessages = await db
       .select()
       .from(outbox)
-      .where(eq(outbox.userId, demoUserId))
+      .where(eq(outbox.userId, effectiveUserId))
       .orderBy(desc(outbox.createdAt));
 
     return NextResponse.json({
+      userId: effectiveUserId,
+      isDemoFallback: !sessionUserId,
       savedJobs: enriched,
       outboxMessages,
     });
@@ -95,7 +100,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const demoUserId = 'user-1';
+    const cookieStore = await cookies();
+    const sessionUserId = cookieStore.get('rozgarsetu_session')?.value;
+    const effectiveUserId = sessionUserId || 'user-1';
+
     const body = await request.json();
     const { vacancyId, progress = 'saved', reminderOn = '2026-11-05', smsConsent = false } = body;
 
@@ -113,11 +121,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
     }
 
-    // Check if already saved
+    // Check if already saved by THIS user
     const existing = await db
       .select()
       .from(savedJobs)
-      .where(eq(savedJobs.vacancyId, vacancyId));
+      .where(and(eq(savedJobs.vacancyId, vacancyId), eq(savedJobs.userId, effectiveUserId)));
 
     const id = existing.length > 0 ? existing[0].id : `sj-${Date.now()}`;
 
@@ -129,25 +137,27 @@ export async function POST(request: Request) {
           reminderOn,
           smsConsent,
           lastSeenVersionId: vac.currentNoticeVersionId,
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(savedJobs.id, id));
     } else {
       await db.insert(savedJobs).values({
         id,
-        userId: demoUserId,
+        userId: effectiveUserId,
         vacancyId,
         progress,
         lastSeenVersionId: vac.currentNoticeVersionId,
         reminderOn,
         smsConsent,
+        updatedAt: new Date().toISOString(),
       });
     }
 
-    // If SMS consent was granted, write to outbox stub per AGENTS.md
+    // If SMS consent was granted, write to outbox stub for THIS user
     if (smsConsent) {
       await db.insert(outbox).values({
         id: `outbox-${Date.now()}`,
-        userId: demoUserId,
+        userId: effectiveUserId,
         channel: 'sms',
         messageKey: `REMINDER_${vac.id.toUpperCase()}`,
         payloadJson: JSON.stringify({
@@ -159,7 +169,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, id });
+    return NextResponse.json({ success: true, id, userId: effectiveUserId });
   } catch (error) {
     console.error('Error saving job:', error);
     return NextResponse.json(

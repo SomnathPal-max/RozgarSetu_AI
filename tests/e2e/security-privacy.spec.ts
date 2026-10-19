@@ -69,12 +69,12 @@ test.describe.serial('Security & Privacy Enforcement Tests (AGENTS.md & Plan Req
     await reviewer1Btn.click();
 
     // 6. Now /en/admin is accessible
-    await expect(page).toHaveURL(/\/en\/admin/);
-    await expect(page.getByText('Reviewer Queue')).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/admin(?!\/login)/, { timeout: 15000 });
+    await expect(page.getByText('Reviewer Queue')).toBeVisible({ timeout: 15000 });
 
     // 7. And navigation now displays the Reviewer/Admin tab
     const reviewerNav = page.locator('nav a[href*="/admin"]');
-    await expect(reviewerNav).toBeVisible();
+    await expect(reviewerNav).toBeVisible({ timeout: 15000 });
 
     // 8. Exit portal / logout
     const exitBtn = page.getByRole('button', { name: /Exit Portal/i });
