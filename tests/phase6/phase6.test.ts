@@ -65,8 +65,8 @@ describe('Phase 6: Eligibility Receipt (Screen 8) & Polish', () => {
     );
 
     // Rule 3 check: Verify evaluation has NO overall "eligible" boolean
-    expect((evaluation as Record<string, unknown>).eligible).toBeUndefined();
-    expect((evaluation as Record<string, unknown>).isEligible).toBeUndefined();
+    expect((evaluation as unknown as Record<string, unknown>).eligible).toBeUndefined();
+    expect((evaluation as unknown as Record<string, unknown>).isEligible).toBeUndefined();
 
     // Verify per-criterion results
     const statuses = evaluation.results.reduce(

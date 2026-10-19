@@ -141,7 +141,7 @@ export function EligibilityReceiptClient({ vacancyId, locale }: EligibilityRecei
   }, [vacancyId, profile]);
 
   useEffect(() => {
-    if (vacancy && evaluationResult && evaluationResult.length > 0) {
+    if (vacancy && evaluationResult && evaluationResult.results && evaluationResult.results.length > 0) {
       fetch(`/api/receipt/${vacancyId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
